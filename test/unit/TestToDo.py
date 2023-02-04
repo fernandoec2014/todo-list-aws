@@ -25,6 +25,7 @@ class TestDatabaseFunctions(unittest.TestCase):
             message="Using or importing.*")
         """Create the mock database and table"""
         self.dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+        self.dynamoFail = boto3.resource('dynamodb', region_name='us-west-1')
         self.is_local = 'true'
         self.uuid = "123e4567-e89b-12d3-a456-426614174000"
         self.text = "Aprender DevOps y Cloud en la UNIR"
@@ -78,7 +79,7 @@ class TestDatabaseFunctions(unittest.TestCase):
         # Testing file functions
         from src.todoList import put_item
         # Table mock
-        self.assertRaises(Exception, put_item("", self.dynamodb))
+        self.assertRaises(Exception, put_item("", self.dynamoFail))
         self.assertRaises(Exception, put_item("", self.dynamodb))
         print ('End: test_put_todo_error')
 
@@ -103,6 +104,16 @@ class TestDatabaseFunctions(unittest.TestCase):
             self.text,
             responseGet['text'])
         print ('End: test_get_todo')
+        
+    
+    # Agregamos pruebas de error
+    def test_get_todo_error(self):
+        print ('-----------------------')
+        print ('Start test_get_todo_error')
+        from src.todoList import get_item
+        self.assertRaises(Exception, get_item("", self.dynamoFail))     
+        print('End: test_get_todo_error')
+        
     
     def test_list_todo(self):
         print ('---------------------')
@@ -149,7 +160,7 @@ class TestDatabaseFunctions(unittest.TestCase):
         updated_text = "Aprender más cosas que DevOps y Cloud en la UNIR"
         # Testing file functions
         # Table mock
-        responsePut = put_item(self.text, self.dynamodb)
+        responsePut = put_item(self.text, self.dynamoFail)
         print ('Response PutItem' + str(responsePut))
         self.assertRaises(
             Exception,
@@ -157,22 +168,23 @@ class TestDatabaseFunctions(unittest.TestCase):
                 updated_text,
                 "",
                 "false",
-                self.dynamodb))
+                self.dynamoFail))
         self.assertRaises(
             TypeError,
             update_item(
                 "",
                 self.uuid,
                 "false",
-                self.dynamodb))
+                self.dynamoFail))
         self.assertRaises(
             Exception,
             update_item(
                 updated_text,
                 self.uuid,
                 "",
-                self.dynamodb))
+                self.dynamoFail))
         print ('End: atest_update_todo_error')
+        
 
     def test_delete_todo(self):
         print ('---------------------')
@@ -191,6 +203,7 @@ class TestDatabaseFunctions(unittest.TestCase):
         self.assertTrue(len(get_items(self.dynamodb)) == 0)
         print ('End: test_delete_todo')
 
+
     def test_delete_todo_error(self):
         print ('---------------------')
         print ('Start: test_delete_todo_error')
@@ -198,6 +211,22 @@ class TestDatabaseFunctions(unittest.TestCase):
         # Testing file functions
         self.assertRaises(TypeError, delete_item("", self.dynamodb))
         print ('End: test_delete_todo_error')
+    
+    def test_translate_todo(self):
+        print ('---------------------')
+        print ('Start: test_translate_todo')
+        #self.table = create_todo_table_language(self.dynamodb)
+        from src.todoList import translate_item
+
+        translation = translate_item(self.text, "es", self.dynamodb)
+        print ('Response translate :' + str(translation))
+        self.assertEqual("Hola esto es una prueba", translation)
+        translation = translate_item(self.text, "fr", self.dynamodb)
+        print ('Response translate fr:' + str(translation))
+        self.assertEqual("Bonjour, c'est un test", translation)
+        self.assertRaises(TypeError, delete_item("", self.dynamoFail))
+        "Bonjour, c'est un test"
+        print ('End: test_delete_todo')
 
 if __name__ == '__main__':
     unittest.main()
